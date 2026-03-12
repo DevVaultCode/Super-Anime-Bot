@@ -1,0 +1,174 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Racing Pro: Asphalt Edition 🏎️</title>
+    <style>
+        /* Base Setup */
+        body, html {
+            margin: 0; padding: 0; width: 100%; height: 100%;
+            overflow: hidden; background: #000;
+            font-family: 'Segoe UI', Roboto, sans-serif;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        /* 4K Smooth Entry Animation */
+        #game-container {
+            position: fixed; inset: 0;
+            display: flex; flex-direction: column; justify-content: center;
+            align-items: center; z-index: 100;
+            background: radial-gradient(circle, #1a1a1a 0%, #000 100%);
+            /* Smooth Slide Down Entry */
+            animation: slideInDown 1s cubic-bezier(0.22, 1, 0.36, 1) forwards;
+            will-change: transform, opacity;
+        }
+
+        @keyframes slideInDown {
+            0% { transform: translate3d(0, -100%, 0); opacity: 0; }
+            100% { transform: translate3d(0, 0, 0); opacity: 1; }
+        }
+
+        /* Stats & UI Styling */
+        .stats-row {
+            display: flex; gap: 20px; margin-bottom: 25px; 
+            color: #aaa; font-size: 0.9rem; font-weight: bold;
+            letter-spacing: 1px;
+        }
+
+        /* High-Quality Play Button */
+        .play-btn {
+            background: linear-gradient(180deg, #2ecc71, #27ae60);
+            border: none; color: white;
+            padding: 22px 90px;
+            font-size: 1.8rem; font-weight: 900;
+            border-radius: 60px; cursor: pointer;
+            box-shadow: 0 10px 0 #1b7a43, 0 20px 40px rgba(39, 174, 96, 0.4);
+            text-transform: uppercase;
+            animation: pulse 2s infinite ease-in-out;
+            transition: transform 0.2s active;
+        }
+
+        @keyframes pulse {
+            0%, 100% { transform: scale(1) translate3d(0,0,0); }
+            50% { transform: scale(1.05) translate3d(0,0,0); }
+        }
+
+        /* Video Performance Optimization */
+        #prank-video {
+            display: none; 
+            position: fixed; 
+            top: 50%; left: 50%;
+            width: 100.5vw; height: 100.5vh; /* Slightly larger to prevent edges */
+            transform: translate(-50%, -50%) translate3d(0,0,0);
+            object-fit: cover;
+            z-index: 1;
+            will-change: transform;
+        }
+
+        #overlay-text {
+            position: fixed; inset: 0;
+            display: none; justify-content: center; align-items: center;
+            z-index: 50; pointer-events: none;
+        }
+
+        #scare-text {
+            font-size: 14vw; color: #fff; font-weight: 900;
+            text-shadow: 0 0 30px #ff0000, 0 0 60px #ff0000;
+            text-align: center;
+            animation: ultraShake 0.08s infinite;
+        }
+
+        @keyframes ultraShake {
+            0% { transform: translate3d(4px, 4px, 0); }
+            50% { transform: translate3d(-4px, -4px, 0); }
+            100% { transform: translate3d(4px, -4px, 0); }
+        }
+
+        .emoji {
+            position: absolute; font-size: 6rem; z-index: 60;
+            pointer-events: none; 
+            animation: popOut 0.7s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
+            will-change: transform, opacity;
+        }
+
+        @keyframes popOut {
+            0% { transform: scale(0) translate3d(0,0,0); opacity: 0; }
+            40% { opacity: 1; }
+            100% { transform: scale(3) translate3d(0, -200px, 0); opacity: 0; }
+        }
+    </style>
+</head>
+<body>
+
+    <div id="game-container">
+        <div class="stats-row">
+            <span>HD GRAPHICS: ON</span>
+            <span>FPS: 120</span>
+        </div>
+        <button class="play-btn" id="launch-trigger">Play Now</button>
+    </div>
+
+    <video id="prank-video" loop playsinline preload="auto">
+        <source src="https://media1.giphy.com/media/v1.Y2lkPTc5MGI3NjExZjJqOWx0cG55dDNpZHUzc2t5Y2U5eWc2dHB6OXFmM2w0czM5d2YybSZlcD12MV9pbnRlcm5hbF9naWZfYnlfaWQmY3Q9Zw/OOn7N4CfPuUTmNqFD7/giphy.mp4" type="video/mp4">
+    </video>
+
+    <div id="overlay-text">
+        <div id="scare-text">GAJALE ARYAN</div>
+    </div>
+
+    <audio id="prank-audio" loop preload="auto">
+        <source src="https://www.myinstants.com/media/sounds/ladle-meoww-ghop-ghop-ghop.mp3" type="audio/mpeg">
+    </audio>
+
+    <script>
+        const btn = document.getElementById('launch-trigger');
+        const gameScreen = document.getElementById('game-container');
+        const video = document.getElementById('prank-video');
+        const audio = document.getElementById('prank-audio');
+        const overlay = document.getElementById('overlay-text');
+
+        function createEmoji() {
+            const e = document.createElement('div');
+            e.className = 'emoji';
+            e.innerText = "😂";
+            e.style.left = (Math.random() * 80 + 10) + '%';
+            e.style.top = (Math.random() * 80 + 10) + '%';
+            document.body.appendChild(e);
+            setTimeout(() => e.remove(), 700);
+        }
+
+        btn.addEventListener('click', () => {
+            // Force Fullscreen for immersion
+            if (document.documentElement.requestFullscreen) {
+                document.documentElement.requestFullscreen().catch(() => {});
+            }
+
+            // High Priority Playback
+            video.style.display = 'block';
+            
+            const startChaos = () => {
+                gameScreen.style.opacity = '0';
+                setTimeout(() => {
+                    gameScreen.style.display = 'none';
+                    overlay.style.display = 'flex';
+                }, 400);
+
+                // Start Visual Chaos at 60fps
+                setInterval(createEmoji, 120);
+                setInterval(() => {
+                    document.body.style.backgroundColor = `hsl(${Math.random() * 360}, 100%, 50%)`;
+                }, 40);
+            };
+
+            // Play both media elements
+            Promise.all([video.play(), audio.play()])
+                .then(startChaos)
+                .catch(() => {
+                    // Fallback in case of browser block
+                    startChaos();
+                });
+        });
+    </script>
+</body>
+</html>
