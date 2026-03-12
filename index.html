@@ -3,168 +3,340 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Racing Pro: Asphalt Edition 🏎️</title>
+    <title>Ultra AI - Responsive Edition</title>
+    
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/pyodide/v0.23.4/full/pyodide.js"></script>
+
     <style>
-        /* Base Setup */
-        body, html {
-            margin: 0; padding: 0; width: 100%; height: 100%;
-            overflow: hidden; background: #000;
-            font-family: 'Segoe UI', Roboto, sans-serif;
-            -webkit-tap-highlight-color: transparent;
+        body { background-color: #131314; color: #e3e3e3; font-family: 'Segoe UI', system-ui, sans-serif; }
+        /* Hide scrollbar for a cleaner look on mobile */
+        ::-webkit-scrollbar { width: 4px; }
+        ::-webkit-scrollbar-track { background: transparent; }
+        ::-webkit-scrollbar-thumb { background: #444746; border-radius: 10px; }
+        
+        .message { max-width: 90%; padding: 12px 16px; border-radius: 12px; margin-bottom: 20px; line-height: 1.5; font-size: 15px; }
+        @media (min-width: 768px) {
+            .message { max-width: 80%; font-size: 16px; padding: 14px 18px; }
         }
-
-        /* 4K Smooth Entry Animation */
-        #game-container {
-            position: fixed; inset: 0;
-            display: flex; flex-direction: column; justify-content: center;
-            align-items: center; z-index: 100;
-            background: radial-gradient(circle, #1a1a1a 0%, #000 100%);
-            /* Smooth Slide Down Entry */
-            animation: slideInDown 1s cubic-bezier(0.22, 1, 0.36, 1) forwards;
-            will-change: transform, opacity;
-        }
-
-        @keyframes slideInDown {
-            0% { transform: translate3d(0, -100%, 0); opacity: 0; }
-            100% { transform: translate3d(0, 0, 0); opacity: 1; }
-        }
-
-        /* Stats & UI Styling */
-        .stats-row {
-            display: flex; gap: 20px; margin-bottom: 25px; 
-            color: #aaa; font-size: 0.9rem; font-weight: bold;
-            letter-spacing: 1px;
-        }
-
-        /* High-Quality Play Button */
-        .play-btn {
-            background: linear-gradient(180deg, #2ecc71, #27ae60);
-            border: none; color: white;
-            padding: 22px 90px;
-            font-size: 1.8rem; font-weight: 900;
-            border-radius: 60px; cursor: pointer;
-            box-shadow: 0 10px 0 #1b7a43, 0 20px 40px rgba(39, 174, 96, 0.4);
-            text-transform: uppercase;
-            animation: pulse 2s infinite ease-in-out;
-            transition: transform 0.2s active;
-        }
-
-        @keyframes pulse {
-            0%, 100% { transform: scale(1) translate3d(0,0,0); }
-            50% { transform: scale(1.05) translate3d(0,0,0); }
-        }
-
-        /* Video Performance Optimization */
-        #prank-video {
-            display: none; 
-            position: fixed; 
-            top: 50%; left: 50%;
-            width: 100.5vw; height: 100.5vh; /* Slightly larger to prevent edges */
-            transform: translate(-50%, -50%) translate3d(0,0,0);
-            object-fit: cover;
-            z-index: 1;
-            will-change: transform;
-        }
-
-        #overlay-text {
-            position: fixed; inset: 0;
-            display: none; justify-content: center; align-items: center;
-            z-index: 50; pointer-events: none;
-        }
-
-        #scare-text {
-            font-size: 14vw; color: #fff; font-weight: 900;
-            text-shadow: 0 0 30px #ff0000, 0 0 60px #ff0000;
-            text-align: center;
-            animation: ultraShake 0.08s infinite;
-        }
-
-        @keyframes ultraShake {
-            0% { transform: translate3d(4px, 4px, 0); }
-            50% { transform: translate3d(-4px, -4px, 0); }
-            100% { transform: translate3d(4px, -4px, 0); }
-        }
-
-        .emoji {
-            position: absolute; font-size: 6rem; z-index: 60;
-            pointer-events: none; 
-            animation: popOut 0.7s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
-            will-change: transform, opacity;
-        }
-
-        @keyframes popOut {
-            0% { transform: scale(0) translate3d(0,0,0); opacity: 0; }
-            40% { opacity: 1; }
-            100% { transform: scale(3) translate3d(0, -200px, 0); opacity: 0; }
-        }
+        
+        .user-msg { background: #004a77; color: #c2e7ff; margin-left: auto; border-bottom-right-radius: 4px; }
+        .ai-msg { background: transparent; margin-right: auto; }
+        
+        pre { background: #1e1f20; padding: 12px; border-radius: 12px; overflow-x: auto; margin: 10px 0; border: 1px solid #444746; font-size: 13px; }
+        code { font-family: 'Consolas', monospace; color: #a8c7fa; }
+        .output-box { background: #000; color: #4ade80; padding: 10px; border-radius: 8px; margin-top: 8px; font-family: monospace; display: none; font-size: 12px; }
+        
+        .action-btn { background: transparent; color: #c4c7c5; border: none; cursor: pointer; border-radius: 50%; width: 36px; height: 36px; display: flex; align-items: center; justify-content: center; transition: background 0.2s; font-size: 18px;}
+        .action-btn:hover { background: #333537; color: #e3e3e3; }
+        .playing-text { color: #a8c7fa; }
     </style>
 </head>
-<body>
+<body class="flex flex-col h-[100dvh] overflow-hidden">
 
-    <div id="game-container">
-        <div class="stats-row">
-            <span>HD GRAPHICS: ON</span>
-            <span>FPS: 120</span>
+    <header class="bg-[#1e1f20] p-3 md:p-4 flex justify-between items-center border-b border-[#444746] shrink-0">
+        <h1 class="text-lg md:text-xl font-medium flex items-center gap-2"><i class="fa-solid fa-sparkles text-[#a8c7fa]"></i> Ultra AI</h1>
+        <span id="py-status" class="text-[10px] md:text-xs text-[#fbbc04] bg-[#333537] px-2 md:px-3 py-1 rounded-full">
+            <i class="fa-solid fa-spinner fa-spin mr-1"></i> Python Loading
+        </span>
+    </header>
+
+    <main id="chat-container" class="flex-1 overflow-y-auto p-4 md:p-8 w-full max-w-4xl mx-auto"></main>
+
+    <footer class="bg-[#131314] p-3 md:p-4 shrink-0 w-full flex justify-center">
+        <div class="flex items-center gap-2 md:gap-3 w-full max-w-4xl bg-[#1e1f20] rounded-full p-1.5 md:p-2 pl-3 md:pl-4 border border-[#444746] focus-within:border-[#a8c7fa]">
+            <button onclick="toggleSettings()" class="text-[#c4c7c5] hover:text-white transition p-2" title="Settings">
+                <i class="fa-solid fa-gear text-lg md:text-xl"></i>
+            </button>
+            
+            <input type="text" id="user-input" placeholder="Message Ultra AI..." 
+                   class="flex-1 bg-transparent text-white outline-none placeholder-[#c4c7c5] text-sm md:text-base"
+                   onkeypress="if(event.key === 'Enter') sendMessage()">
+            
+            <button onclick="sendMessage()" class="bg-[#c2e7ff] text-[#004a77] hover:bg-[#a8c7fa] rounded-full w-10 h-10 md:w-12 md:h-12 flex items-center justify-center transition">
+                <i class="fa-solid fa-paper-plane"></i>
+            </button>
         </div>
-        <button class="play-btn" id="launch-trigger">Play Now</button>
+    </footer>
+
+    <div id="settings-modal" class="fixed inset-0 bg-black/70 hidden flex justify-center items-center z-50 p-4">
+        <div class="bg-[#1e1f20] p-5 md:p-6 rounded-2xl w-full max-w-md border border-[#444746] max-h-[85vh] overflow-y-auto">
+            <h2 class="text-lg md:text-xl font-medium mb-4 text-[#e3e3e3]"><i class="fa-solid fa-sliders mr-2"></i> Settings</h2>
+            
+            <label class="block mb-1 text-xs md:text-sm text-[#c4c7c5]">AI Engine</label>
+            <select id="ai-provider" onchange="toggleCustomFields()" class="w-full bg-[#131314] border border-[#444746] rounded-lg p-2.5 mb-3 text-white outline-none text-sm">
+                <option value="gemini">Google Gemini API</option>
+                <option value="openai">OpenAI (ChatGPT)</option>
+                <option value="custom">Custom / OpenRouter</option>
+            </select>
+
+            <div id="gemini-fields" class="bg-[#131314] p-3 rounded-lg border border-[#444746] mb-4">
+                <label class="block mb-1 text-[11px] text-[#c4c7c5]">Gemini Model Name (Change if error occurs)</label>
+                <input type="text" id="gemini-model" value="gemini-1.5-flash" class="w-full bg-[#1e1f20] border border-[#444746] rounded p-2 text-white text-sm outline-none focus:border-[#a8c7fa]">
+            </div>
+
+            <div id="custom-fields" class="hidden bg-[#131314] p-3 rounded-lg border border-[#444746] mb-4">
+                <label class="block mb-1 text-[11px] text-[#c4c7c5]">Custom Base URL</label>
+                <input type="text" id="custom-url" placeholder="https://api.groq.com/openai/v1/chat/completions" class="w-full bg-[#1e1f20] border border-[#444746] rounded p-2 mb-2 text-white text-sm outline-none focus:border-[#a8c7fa]">
+                <label class="block mb-1 text-[11px] text-[#c4c7c5]">Custom Model</label>
+                <input type="text" id="custom-model" placeholder="llama3-8b-8192" class="w-full bg-[#1e1f20] border border-[#444746] rounded p-2 text-white text-sm outline-none focus:border-[#a8c7fa]">
+            </div>
+
+            <label class="block mb-1 text-xs md:text-sm text-[#c4c7c5]">API Key</label>
+            <input type="password" id="api-key" placeholder="Paste your API Key here..." class="w-full bg-[#131314] border border-[#444746] rounded-lg p-2.5 mb-4 text-white outline-none focus:border-[#a8c7fa] text-sm">
+
+            <label class="block mb-1 text-xs md:text-sm text-[#c4c7c5]">AI Voice (Aawaz)</label>
+            <select id="voice-select" class="w-full bg-[#131314] border border-[#444746] rounded-lg p-2.5 mb-6 text-white text-sm outline-none"></select>
+
+            <div class="flex justify-end gap-2 md:gap-3">
+                <button onclick="toggleSettings()" class="px-4 py-2 rounded-full text-[#a8c7fa] hover:bg-[#333537] transition text-sm font-medium">Cancel</button>
+                <button onclick="saveSettings()" class="px-4 py-2 rounded-full bg-[#a8c7fa] text-[#004a77] hover:bg-[#c2e7ff] text-sm font-medium transition">Save Setup</button>
+            </div>
+        </div>
     </div>
 
-    <video id="prank-video" loop playsinline preload="auto">
-        <source src="https://media1.giphy.com/media/v1.Y2lkPTc5MGI3NjExZjJqOWx0cG55dDNpZHUzc2t5Y2U5eWc2dHB6OXFmM2w0czM5d2YybSZlcD12MV9pbnRlcm5hbF9naWZfYnlfaWQmY3Q9Zw/OOn7N4CfPuUTmNqFD7/giphy.mp4" type="video/mp4">
-    </video>
-
-    <audio id="prank-audio" loop preload="auto">
-        <source src="https://www.myinstants.com/media/sounds/ladle-meoww-ghop-ghop-ghop.mp3" type="audio/mpeg">
-    </audio>
-
     <script>
-        const btn = document.getElementById('launch-trigger');
-        const gameScreen = document.getElementById('game-container');
-        const video = document.getElementById('prank-video');
-        const audio = document.getElementById('prank-audio');
-        const overlay = document.getElementById('overlay-text');
+        let pyodideInstance = null;
+        let voices = [];
+        let chatHistory = [];
+        let currentlyPlayingDiv = null;
 
-        function createEmoji() {
-            const e = document.createElement('div');
-            e.className = 'emoji';
-            e.innerText = "😂";
-            e.style.left = (Math.random() * 80 + 10) + '%';
-            e.style.top = (Math.random() * 80 + 10) + '%';
-            document.body.appendChild(e);
-            setTimeout(() => e.remove(), 700);
+        async function initPython() {
+            try {
+                pyodideInstance = await loadPyodide();
+                await pyodideInstance.runPythonAsync(`import sys, io\nsys.stdout = io.StringIO()`);
+                const status = document.getElementById('py-status');
+                status.innerHTML = '<i class="fa-solid fa-check mr-1"></i> Python Ready';
+                status.className = 'text-[10px] md:text-xs text-[#81c995] bg-[#333537] px-2 md:px-3 py-1 rounded-full';
+            } catch (err) {
+                document.getElementById('py-status').innerHTML = '<i class="fa-solid fa-xmark mr-1"></i> Py Error';
+            }
+        }
+        initPython();
+
+        function populateVoices() {
+            voices = window.speechSynthesis.getVoices();
+            const voiceSelect = document.getElementById('voice-select');
+            voiceSelect.innerHTML = '';
+            voices.forEach((v, i) => {
+                let opt = document.createElement('option');
+                opt.value = i; opt.textContent = `${v.name} (${v.lang})`;
+                if(v.lang.includes('IN') || v.lang.includes('hi')) opt.selected = true;
+                voiceSelect.appendChild(opt);
+            });
+        }
+        window.speechSynthesis.onvoiceschanged = populateVoices;
+
+        window.onload = () => {
+            setTimeout(populateVoices, 500);
+            if(localStorage.getItem('gem_api_key')) document.getElementById('api-key').value = localStorage.getItem('gem_api_key');
+            if(localStorage.getItem('gem_model_name')) document.getElementById('gemini-model').value = localStorage.getItem('gem_model_name');
+            if(localStorage.getItem('gem_provider')) {
+                document.getElementById('ai-provider').value = localStorage.getItem('gem_provider');
+                toggleCustomFields();
+            }
+            if(localStorage.getItem('gem_custom_url')) document.getElementById('custom-url').value = localStorage.getItem('gem_custom_url');
+            if(localStorage.getItem('gem_custom_model')) document.getElementById('custom-model').value = localStorage.getItem('gem_custom_model');
+
+            appendMessage("AI", "Bhai, UI ab mobile aur desktop dono ke liye perfect scale hoga. Agar `gemini-1.5-flash` model error de, toh Settings ⚙️ mein ja kar uski jagah **`gemini-1.0-pro`** ya **`gemini-pro`** type kar lena.");
+        };
+
+        function toggleSettings() { document.getElementById('settings-modal').classList.toggle('hidden'); }
+        
+        function toggleCustomFields() {
+            const val = document.getElementById('ai-provider').value;
+            document.getElementById('custom-fields').style.display = (val === 'custom') ? 'block' : 'none';
+            document.getElementById('gemini-fields').style.display = (val === 'gemini') ? 'block' : 'none';
         }
 
-        btn.addEventListener('click', () => {
-            // Force Fullscreen for immersion
-            if (document.documentElement.requestFullscreen) {
-                document.documentElement.requestFullscreen().catch(() => {});
+        function saveSettings() {
+            localStorage.setItem('gem_api_key', document.getElementById('api-key').value);
+            localStorage.setItem('gem_provider', document.getElementById('ai-provider').value);
+            localStorage.setItem('gem_model_name', document.getElementById('gemini-model').value);
+            localStorage.setItem('gem_custom_url', document.getElementById('custom-url').value);
+            localStorage.setItem('gem_custom_model', document.getElementById('custom-model').value);
+            toggleSettings();
+        }
+
+        async function sendMessage() {
+            const inputField = document.getElementById('user-input');
+            const text = inputField.value.trim();
+            if (!text) return;
+
+            appendMessage("User", text);
+            inputField.value = '';
+
+            const key = document.getElementById('api-key').value;
+            if (!key) {
+                appendMessage("System", "Error: API Key nahi mili. Settings ⚙️ mein check karo.");
+                return;
             }
 
-            // High Priority Playback
-            video.style.display = 'block';
+            appendMessage("AI", "Thinking...", true);
+            try {
+                const provider = document.getElementById('ai-provider').value;
+                let aiResponse = await fetchUniversalAPI(text, provider, key);
+                removeTypingIndicator();
+                appendMessage("AI", aiResponse);
+            } catch (error) {
+                removeTypingIndicator();
+                appendMessage("System", "Error: " + error.message);
+            }
+        }
+
+        async function fetchUniversalAPI(prompt, provider, key) {
+            chatHistory.push({ role: "user", content: prompt });
+            let res, data;
             
-            const startChaos = () => {
-                gameScreen.style.opacity = '0';
-                setTimeout(() => {
-                    gameScreen.style.display = 'none';
-                    overlay.style.display = 'flex';
-                }, 400);
-
-                // Start Visual Chaos at 60fps
-                setInterval(createEmoji, 120);
-                setInterval(() => {
-                    document.body.style.backgroundColor = `hsl(${Math.random() * 360}, 100%, 50%)`;
-                }, 40);
-            };
-
-            // Play both media elements
-            Promise.all([video.play(), audio.play()])
-                .then(startChaos)
-                .catch(() => {
-                    // Fallback in case of browser block
-                    startChaos();
+            if (provider === 'gemini') {
+                // Fetch dynamic model name from settings
+                const modelName = document.getElementById('gemini-model').value.trim() || 'gemini-1.5-flash';
+                const url = `https://generativelanguage.googleapis.com/v1beta/models/${modelName}:generateContent?key=${key}`;
+                
+                res = await fetch(url, {
+                    method: 'POST', headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ contents: [{ parts: [{ text: prompt }] }] })
                 });
-        });
+                data = await res.json();
+                if(data.error) throw new Error(data.error.message);
+                return data.candidates[0].content.parts[0].text;
+            } 
+            else if (provider === 'openai') {
+                res = await fetch('https://api.openai.com/v1/chat/completions', {
+                    method: 'POST', headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${key}` },
+                    body: JSON.stringify({ model: 'gpt-3.5-turbo', messages: chatHistory })
+                });
+                data = await res.json();
+                if(data.error) throw new Error(data.error.message);
+                chatHistory.push(data.choices[0].message);
+                return data.choices[0].message.content;
+            }
+            else if (provider === 'custom') {
+                let customUrl = document.getElementById('custom-url').value;
+                let customModel = document.getElementById('custom-model').value || 'default';
+                res = await fetch(customUrl, {
+                    method: 'POST', headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${key}` },
+                    body: JSON.stringify({ model: customModel, messages: chatHistory })
+                });
+                data = await res.json();
+                if(data.error) throw new Error(data.error.message || JSON.stringify(data.error));
+                chatHistory.push(data.choices[0].message);
+                return data.choices[0].message.content;
+            }
+        }
+
+        function appendMessage(sender, text, isTyping = false) {
+            const chatBox = document.getElementById('chat-container');
+            const msgDiv = document.createElement('div');
+            let uniqueId = "msg-" + Date.now();
+            msgDiv.id = isTyping ? 'typing-indicator' : uniqueId;
+            
+            if(sender === 'User') {
+                msgDiv.className = 'message user-msg';
+                msgDiv.innerText = text;
+            } else if (sender === 'System') {
+                msgDiv.className = 'message ai-msg text-[#f28b82] bg-[#3c1e1e] border border-[#5c2b2b] p-3 text-xs md:text-sm';
+                msgDiv.innerText = text;
+            } else {
+                msgDiv.className = 'message ai-msg w-full';
+                let htmlContent = isTyping ? `<i class="fa-solid fa-sparkles text-[#a8c7fa] animate-pulse"></i> Generating...` : marked.parse(text);
+                let encodedText = encodeURIComponent(text);
+                
+                let audioBtn = `<div class="mt-3 flex gap-2">
+                    <button onclick="toggleAudio(this, '${encodedText}', '${uniqueId}')" class="action-btn" title="Listen">
+                        <i class="fa-solid fa-volume-high"></i>
+                    </button>
+                </div>`;
+                
+                msgDiv.innerHTML = `<div class="content text-[#e3e3e3] overflow-hidden" id="text-${uniqueId}">${htmlContent}</div>` + (isTyping ? "" : audioBtn);
+                if(!isTyping) setTimeout(() => attachRunButtons(msgDiv), 50);
+            }
+            chatBox.appendChild(msgDiv);
+            // Auto scroll to bottom smoothly
+            chatBox.scrollTo({ top: chatBox.scrollHeight, behavior: 'smooth' });
+        }
+
+        function removeTypingIndicator() {
+            const el = document.getElementById('typing-indicator');
+            if(el) el.remove();
+        }
+
+        // MANUAL AUDIO LOGIC
+        function toggleAudio(btnElement, encodedText, divId) {
+            const icon = btnElement.querySelector('i');
+            const textDiv = document.getElementById("text-" + divId);
+
+            if (window.speechSynthesis.speaking && currentlyPlayingDiv === divId) {
+                window.speechSynthesis.cancel();
+                icon.className = "fa-solid fa-volume-high";
+                textDiv.classList.remove('playing-text');
+                currentlyPlayingDiv = null;
+                return;
+            }
+
+            window.speechSynthesis.cancel();
+            if (currentlyPlayingDiv) {
+                let oldTextDiv = document.getElementById("text-" + currentlyPlayingDiv);
+                if(oldTextDiv) oldTextDiv.classList.remove('playing-text');
+                let allBtns = document.querySelectorAll('.action-btn i.fa-circle-stop');
+                allBtns.forEach(b => b.className = "fa-solid fa-volume-high");
+            }
+
+            currentlyPlayingDiv = divId;
+            icon.className = "fa-regular fa-circle-stop";
+            textDiv.classList.add('playing-text');
+
+            let rawText = decodeURIComponent(encodedText);
+            let speechText = rawText.replace(/```[\s\S]*?```/g, " Yahan code block hai. ").replace(/[*_~#`]/g, "");
+            
+            let speech = new SpeechSynthesisUtterance(speechText);
+            const voiceIndex = document.getElementById('voice-select').value;
+            if (voices[voiceIndex]) speech.voice = voices[voiceIndex];
+
+            speech.onend = () => {
+                icon.className = "fa-solid fa-volume-high";
+                textDiv.classList.remove('playing-text');
+                currentlyPlayingDiv = null;
+            };
+            speech.onerror = speech.onend;
+            window.speechSynthesis.speak(speech);
+        }
+
+        function attachRunButtons(container) {
+            container.querySelectorAll('pre').forEach((pre) => {
+                const codeNode = pre.querySelector('code');
+                if(!codeNode) return;
+                let rawCode = codeNode.innerText;
+                let id = Math.random().toString(36).substr(2, 9);
+                let hiddenStorage = `<textarea id="code-${id}" class="hidden">${rawCode.replace(/</g, "&lt;").replace(/>/g, "&gt;")}</textarea>`;
+                pre.insertAdjacentHTML('afterend', hiddenStorage);
+
+                if (codeNode.className.includes('html') || rawCode.includes('<html>')) {
+                    pre.insertAdjacentHTML('afterend', `<div class="flex mt-2"><button onclick="runHTML('${id}')" class="text-xs md:text-sm bg-[#333537] hover:bg-[#444746] text-[#c4c7c5] px-3 py-1.5 rounded border border-[#444746] transition"><i class="fa-solid fa-play mr-1"></i> Run HTML</button></div><iframe id="frame-${id}" class="w-full h-48 md:h-64 mt-2 bg-white rounded hidden"></iframe>`);
+                } else if (codeNode.className.includes('python') || codeNode.className.includes('py')) {
+                    pre.insertAdjacentHTML('afterend', `<div class="flex mt-2"><button onclick="runPython('${id}')" class="text-xs md:text-sm bg-[#333537] hover:bg-[#444746] text-[#c4c7c5] px-3 py-1.5 rounded border border-[#444746] transition"><i class="fa-solid fa-terminal mr-1"></i> Run Python</button></div><div id="out-${id}" class="output-box"></div>`);
+                }
+            });
+        }
+
+        function runHTML(id) {
+            const frame = document.getElementById(`frame-${id}`);
+            frame.classList.toggle('hidden');
+            frame.srcdoc = document.getElementById(`code-${id}`).value;
+        }
+
+        async function runPython(id) {
+            const outBox = document.getElementById(`out-${id}`);
+            outBox.style.display = 'block'; outBox.innerText = 'Running...';
+            if(!pyodideInstance) { outBox.innerText = "Error: Python loading..."; return; }
+            try {
+                await pyodideInstance.runPythonAsync("sys.stdout = io.StringIO()");
+                await pyodideInstance.runPythonAsync(document.getElementById(`code-${id}`).value);
+                outBox.innerText = pyodideInstance.runPython("sys.stdout.getvalue()") || "Success";
+            } catch (err) { outBox.innerText = err.toString(); outBox.style.color = "#f28b82"; }
+        }
     </script>
 </body>
 </html>
