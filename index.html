@@ -1,143 +1,29 @@
 <!DOCTYPE html>
-<html lang="en">
+<html>
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Need For Speed: Pro Edition 🏎️</title>
-    <style>
-        body, html {
-            margin: 0; padding: 0; width: 100%; height: 100%;
-            overflow: hidden; background: #111; font-family: 'Segoe UI', sans-serif;
-        }
-
-        /* Entry Screen */
-        #lobby {
-            position: fixed; inset: 0;
-            display: flex; flex-direction: column;
-            justify-content: center; align-items: center;
-            background: radial-gradient(circle, #1a1a1a 0%, #000 100%);
-            z-index: 100;
-        }
-
-        .game-title {
-            color: #00f2fe; font-size: 3rem; font-weight: 900;
-            text-transform: uppercase; letter-spacing: 5px;
-            margin-bottom: 30px; text-shadow: 0 0 20px #00f2fe;
-        }
-
-        .play-btn {
-            background: linear-gradient(180deg, #00f2fe 0%, #0037ff 100%);
-            border: none; color: white; padding: 20px 80px;
-            font-size: 1.5rem; font-weight: bold; border-radius: 50px;
-            cursor: pointer; box-shadow: 0 0 30px rgba(0, 119, 255, 0.6);
-            transition: transform 0.2s;
-        }
-
-        .play-btn:hover { transform: scale(1.1); }
-
-        /* Loading Screen (The Trap) */
-        #loading-screen {
-            display: none; position: fixed; inset: 0;
-            background: #000; z-index: 90;
-            flex-direction: column; justify-content: center; align-items: center;
-        }
-
-        .loader-bar {
-            width: 300px; height: 10px; background: #333;
-            border-radius: 10px; overflow: hidden; margin-top: 20px;
-        }
-
-        #progress {
-            width: 0%; height: 100%; background: #00f2fe;
-            transition: width 0.1s;
-        }
-
-        /* Prank Elements */
-        #prank-video {
-            display: none; position: fixed; top: 0; left: 0;
-            width: 100%; height: 100%; object-fit: cover; z-index: 200;
-        }
-
-        #scare-text {
-            position: fixed; inset: 0; display: none;
-            justify-content: center; align-items: center;
-            z-index: 210; font-size: 12vw; color: #ff0000;
-            font-weight: 900; pointer-events: none;
-            text-shadow: 5px 5px #fff;
-            animation: shake 0.05s infinite;
-        }
-
-        @keyframes shake {
-            0% { transform: translate(10px, 10px) rotate(2deg); }
-            50% { transform: translate(-10px, -10px) rotate(-2deg); }
-            100% { transform: translate(10px, -10px) rotate(1deg); }
-        }
-    </style>
+  <title>Amazing Facts Search Engine</title>
 </head>
 <body>
+  <h1>🚀 My Search Engine</h1>
+  <input type="text" id="query" placeholder="Kuch bhi search karo...">
+  <button onclick="search()">Search</button>
+  <div id="result"></div>
 
-    <div id="lobby">
-        <button class="play-btn" onclick="startLoading()">START ENGINE</button>
-    </div>
-
-    <div id="loading-screen">
-        <h2 style="color: white; letter-spacing: 2px;">LOADING ASSETS...</h2>
-        <div class="loader-bar"><div id="progress"></div></div>
-    </div>
-
-    <div id="scare-text">GAME OVER! 💀</div>
-    <video id="prank-video" loop playsinline>
-        <source src="https://media1.giphy.com/media/v1.Y2lkPTc5MGI3NjExZjJqOWx0cG55dDNpZHUzc2t5Y2U5eWc2dHB6OXFmM2w0czM5d2YybSZlcD12MV9pbnRlcm5hbF9naWZfYnlfaWQmY3Q9Zw/OOn7N4CfPuUTmNqFD7/giphy.mp4" type="video/mp4">
-    </video>
-
-    <audio id="prank-audio" loop>
-        <source src="https://www.myinstants.com/media/sounds/ladle-meoww-ghop-ghop-ghop.mp3" type="audio/mpeg">
-    </audio>
-
-    <script>
-        const lobby = document.getElementById('lobby');
-        const loadingScreen = document.getElementById('loading-screen');
-        const progressBar = document.getElementById('progress');
-        const video = document.getElementById('prank-video');
-        const audio = document.getElementById('prank-audio');
-        const scareText = document.getElementById('scare-text');
-
-        function startLoading() {
-            // Fullscreen trigger
-            if (document.documentElement.requestFullscreen) {
-                document.documentElement.requestFullscreen();
-            }
-
-            lobby.style.display = 'none';
-            loadingScreen.style.display = 'flex';
-
-            let width = 0;
-            const interval = setInterval(() => {
-                if (width >= 100) {
-                    clearInterval(interval);
-                    triggerPrank();
-                } else {
-                    // 90% ke baad slow ho jayega suspense ke liye
-                    width += width > 90 ? 0.5 : 2;
-                    progressBar.style.width = width + '%';
-                }
-            }, 50);
-        }
-
-        function triggerPrank() {
-            loadingScreen.style.display = 'none';
-            video.style.display = 'block';
-            scareText.style.display = 'flex';
-            document.body.style.cursor = 'none'; // Cursor chupa diya
-
-            video.play();
-            audio.play();
-
-            // Screen flashing effect
-            setInterval(() => {
-                document.body.style.backgroundColor = Math.random() > 0.5 ? 'red' : 'black';
-            }, 50);
-        }
-    </script>
+  <script>
+    function search() {
+      var q = document.getElementById('query').value;
+      // Yahan apna wo URL paste karo jo tumhe abhi mila hai
+      var webAppUrl = "https://script.google.com/macros/s/AKfycbzP6_4-SqzZXbA8lsRQP8vlx-i72mlpJg0moNO4OSUiKaHRtTvfloPfs5vr4IUa2wrh/exec"; 
+      
+      document.getElementById('result').innerText = "Searching...";
+      
+      fetch(webAppUrl + "?q=" + encodeURIComponent(q))
+        .then(response => response.json())
+        .then(data => {
+           document.getElementById('result').innerText = JSON.stringify(data);
+        });
+    }
+  </script>
 </body>
 </html>
+
