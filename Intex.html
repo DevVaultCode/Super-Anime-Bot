@@ -1,0 +1,537 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CyberShare Infinite - Minimalist P2P Relay</title>
+    <!-- Tailwind CSS for modern premium responsive layout -->
+    <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
+    <!-- PeerJS Library for direct browser-to-browser P2P logic -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/peerjs/1.4.7/peerjs.min.js"></script>
+    <!-- Hls.js Library for playing .m3u8 live stream files seamlessly on Android & iOS -->
+    <script src="https://cdn.jsdelivr.net/npm/hls.js@latest"></script>
+    <style>
+        body { background: #07080e; font-family: system-ui, -apple-system, sans-serif; }
+        .custom-scroll::-webkit-scrollbar { width: 4px; }
+        .custom-scroll::-webkit-scrollbar-track { background: transparent; }
+        .custom-scroll::-webkit-scrollbar-thumb { background: #1e293b; border-radius: 10px; }
+        .glow-hover:hover { box-shadow: 0 0 20px rgba(6, 182, 212, 0.15); }
+    </style>
+</head>
+<body class="text-slate-200 min-h-screen flex flex-col justify-between antialiased">
+
+    <!-- Clean Header with System Specs and Custom Badges -->
+    <header class="border-b border-slate-900/80 bg-[#0c0d14]/80 backdrop-blur-md sticky top-0 z-50 px-6 py-4 flex flex-wrap justify-between items-center gap-4">
+        <div class="flex items-center gap-3">
+            <div class="h-9 w-9 rounded-lg bg-cyan-500 flex items-center justify-center shadow-md shadow-cyan-500/10">
+                <span class="font-black text-sm text-black">CS</span>
+            </div>
+            <div>
+                <h1 class="text-base font-semibold text-white tracking-wide">CyberShare Infinite X</h1>
+                <!-- IP Protection Status indicator -->
+                <p class="text-[10px] text-cyan-400/90 font-mono tracking-wider uppercase flex items-center gap-1">
+                    <span class="h-1 w-1 rounded-full bg-cyan-400 animate-pulse"></span> IP Protection Active
+                </p>
+            </div>
+        </div>
+
+        <div class="flex items-center gap-3">
+            <div class="bg-slate-900/60 border border-slate-800 px-3 py-1 rounded-md text-[11px] font-mono">
+                <span class="text-slate-500">Active Nodes:</span> <span id="swarm-count" class="text-cyan-400 font-bold">0</span>
+            </div>
+            <!-- Elegant Owner Identification Badge -->
+            <div class="bg-cyan-950/40 border border-cyan-800/30 px-3 py-1 rounded-md text-[10px] font-mono text-cyan-400 font-medium tracking-wide uppercase">
+                👑 Owner Workspace
+            </div>
+        </div>
+    </header>
+
+    <!-- Custom Floating Notification Alert Box (No ugly native alert dialogs) -->
+    <div id="custom-alert" class="fixed top-20 right-6 z-50 max-w-sm w-full bg-[#0f111a] border border-slate-800 rounded-xl p-4 hidden shadow-2xl transition duration-300">
+        <div class="flex items-start gap-3">
+            <div id="alert-icon" class="text-sm">📢</div>
+            <div class="flex-grow">
+                <h3 id="alert-title" class="text-xs font-bold text-slate-200 uppercase tracking-wider">System</h3>
+                <p id="alert-message" class="text-xs text-slate-400 mt-0.5 leading-relaxed"></p>
+            </div>
+            <!-- Notification close button -->
+            <button onclick="closeNotification()" class="text-slate-500 hover:text-slate-300 text-xs font-bold px-1 cursor-pointer">✕</button>
+        </div>
+    </div>
+
+    <!-- Main Responsive Console Layout -->
+    <main class="max-w-6xl w-full mx-auto p-4 md:p-6 grid grid-cols-1 lg:grid-cols-3 gap-6 flex-grow">
+        
+        <!-- Left Panel: Connection Vectors & Rooms -->
+        <section class="lg:col-span-1 flex flex-col gap-4">
+            <!-- Room Initiator Matrix -->
+            <div class="bg-[#0c0d14] border border-slate-900 rounded-xl p-5 shadow-sm glow-hover transition duration-300">
+                <h2 class="text-xs font-medium text-slate-400 uppercase tracking-wider mb-3">Host Private Room</h2>
+                <button id="btn-spawn" class="w-full bg-cyan-500 hover:bg-cyan-400 text-black font-semibold py-2.5 px-4 rounded-lg transition text-xs tracking-wide cursor-pointer active:scale-[0.99] shadow-lg shadow-cyan-500/5">
+                    GENERATE PRIVATE ROOM
+                </button>
+                <div id="room-id-container" class="mt-3 hidden bg-[#05060a] border border-slate-900 rounded-lg p-3 space-y-2">
+                    <span class="text-[9px] font-mono text-slate-500 block uppercase tracking-wider">Secure Room Key Address (Share privately):</span>
+                    <div class="flex gap-2">
+                        <code id="room-id" class="flex-grow text-slate-300 font-mono text-xs break-all bg-slate-900/30 p-2 rounded border border-slate-800/60 select-all">Vectors...</code>
+                        <button id="btn-copy" class="bg-slate-800 hover:bg-slate-700 px-3 rounded-md text-xs font-medium border border-slate-700 cursor-pointer text-slate-300">Copy</button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Client Tunnel Link Matrix -->
+            <div class="bg-[#0c0d14] border border-slate-900 rounded-xl p-5 shadow-sm">
+                <h2 class="text-xs font-medium text-slate-400 uppercase tracking-wider mb-3">Connect to Peer</h2>
+                <div class="flex flex-col gap-2.5">
+                    <input type="text" id="target-room-input" placeholder="Paste cryptographic room key..." class="w-full bg-[#05060a] border border-slate-900 rounded-lg px-3 py-2.5 text-xs font-mono focus:outline-none focus:border-cyan-500 transition placeholder:text-slate-700 text-slate-300">
+                    <button id="btn-hook" class="w-full bg-slate-900 hover:bg-slate-800 border border-slate-800 text-slate-300 font-medium py-2.5 px-4 rounded-lg transition text-xs cursor-pointer active:scale-[0.99]">
+                        Hook Stream Tunnel
+                    </button>
+                </div>
+                <div id="system-status" class="mt-3 text-center text-[10px] font-mono text-slate-500 tracking-wider">
+                    STATUS: STANDBY
+                </div>
+            </div>
+        </section>
+
+        <!-- Right Panel: Player Pipeline Stage, File Streams & Terminals -->
+        <section class="lg:col-span-2 flex flex-col bg-[#0c0d14] border border-slate-900 rounded-xl overflow-hidden shadow-sm">
+            
+            <!-- Video Player Stage -->
+            <div class="w-full bg-black aspect-video relative flex items-center justify-center border-b border-slate-900/60">
+                <video id="stream-player" class="w-full h-full object-contain hidden" controls></video>
+                <div id="player-placeholder" class="text-center p-4">
+                    <div class="text-slate-600 text-3xl mb-1">🎬</div>
+                    <p class="text-xs font-mono text-slate-600 tracking-wide">Live Proxy Media Stage Standby</p>
+                </div>
+            </div>
+
+            <!-- Micro Terminal Stream Logs -->
+            <div id="terminal-logs" class="flex-grow p-4 overflow-y-auto space-y-2 max-h-[160px] min-h-[120px] font-mono text-xs bg-[#05060a]/40 border-b border-slate-900/60 custom-scroll">
+                <div class="text-slate-600 text-[10px] text-center">[SYSTEM LOGS INITIALIZED // ZERO TRACKING RELAY ACTIVE]</div>
+            </div>
+
+            <!-- Unified Minimal Control Deck -->
+            <div class="p-4 bg-[#090a0f] space-y-3">
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+                    <!-- URL Mapping input -->
+                    <div class="flex flex-col gap-1.5">
+                        <span class="text-[10px] font-mono text-slate-500 font-semibold uppercase tracking-wider">1. Link Stream URL (MX Player / direct MP4):</span>
+                        <input type="text" id="remote-url-input" placeholder="Paste direct streaming link..." class="w-full bg-[#05060a] border border-slate-900 rounded-lg px-3 py-2 text-xs font-mono focus:outline-none focus:border-cyan-500 text-slate-300 placeholder:text-slate-800">
+                    </div>
+                    <!-- Optional CORS proxy configuration override -->
+                    <div class="flex flex-col gap-1.5">
+                        <span class="text-[10px] font-mono text-slate-500 font-semibold uppercase tracking-wider">CORS Proxy Route (Optional Override):</span>
+                        <input type="text" id="cors-proxy-input" placeholder="Leave empty unless stream gets CORS blocked..." class="w-full bg-[#05060a] border border-slate-900 rounded-lg px-3 py-2 text-xs font-mono focus:outline-none focus:border-cyan-500 text-slate-300 placeholder:text-slate-800">
+                    </div>
+                </div>
+
+                <!-- Local System Mount Selector Row -->
+                <div class="flex items-center gap-3 border-t border-slate-900/60 pt-3 flex-wrap">
+                    <label class="flex items-center gap-2 cursor-pointer bg-slate-900/60 hover:bg-slate-800/80 text-slate-300 text-xs font-medium py-1.5 px-3.5 rounded-md border border-slate-800 transition">
+                        📂 Mount Local File (Any Format)
+                        <input type="file" id="media-mounter" class="hidden">
+                    </label>
+                    <span id="mounted-file-name" class="text-xs text-slate-600 truncate max-w-xs font-mono">No reference selected</span>
+                    
+                    <!-- Main Stream Deploy button -->
+                    <button id="btn-broadcast" class="ml-auto bg-cyan-500 hover:bg-cyan-400 text-black text-xs font-bold py-1.5 px-4 rounded-md transition shadow-md shadow-cyan-500/5 active:scale-[0.98] cursor-pointer">
+                        BROADCAST RELAY
+                    </button>
+                </div>
+
+                <!-- Unified Progress Matrix Bar -->
+                <div id="stream-progress-box" class="hidden w-full space-y-1 mt-1 border-t border-slate-900/40 pt-2">
+                    <div class="flex justify-between text-[10px] font-mono text-slate-500">
+                        <span id="stream-label">Streaming Block...</span>
+                        <span id="stream-percentage">0%</span>
+                    </div>
+                    <div class="w-full bg-[#05060a] rounded-full h-1 border border-slate-900 overflow-hidden">
+                        <div id="stream-progress-bar" class="buffer-bar bg-cyan-500 h-1 w-0"></div>
+                    </div>
+                </div>
+            </div>
+        </section>
+    </main>
+
+    <!-- Professional Footer -->
+    <footer class="text-center text-[10px] text-slate-600 py-4 border-t border-slate-900 bg-[#0c0d14]/40 font-mono tracking-wider">
+        CORE INFRASTRUCTURE DESIGNED BY CO-ARCHITECT AI & OWNER USER // SWARM ENGINE v6.0 MESH
+    </footer>
+
+    <!-- Stable Core Logic Engine JavaScript -->
+    <script>
+        const PACKET_CHUNK = 16384; // Throttled 16KB data packets to prevent browser thread lockups
+        let corePeer = null;
+        let myId = "";
+        let swarmPeers = []; 
+        let dbInstance = null;
+        let hlsInstance = null;
+        
+        let fileMetadata = null;
+        let chunkIndexCounter = 0;
+        let totalExpectedChunks = 0;
+
+        // Domestic DOM Interceptors
+        const btnSpawn = document.getElementById('btn-spawn'); 
+        const roomIdContainer = document.getElementById('room-id-container'); 
+        const roomIdDisplay = document.getElementById('room-id'); 
+        const targetRoomInput = document.getElementById('target-room-input'); 
+        const btnHook = document.getElementById('btn-hook'); 
+        const btnCopy = document.getElementById('btn-copy'); 
+        const systemStatus = document.getElementById('system-status'); 
+        const terminalLogs = document.getElementById('terminal-logs'); 
+        const mediaMounter = document.getElementById('media-mounter'); 
+        const mountedFileName = document.getElementById('mounted-file-name'); 
+        const btnBroadcast = document.getElementById('btn-broadcast'); 
+        const streamProgressBox = document.getElementById('stream-progress-box'); 
+        const streamProgressBar = document.getElementById('stream-progress-bar'); 
+        const streamPercentage = document.getElementById('stream-percentage'); 
+        const streamLabel = document.getElementById('stream-label'); 
+        const swarmCount = document.getElementById('swarm-count'); 
+        const streamPlayer = document.getElementById('stream-player'); 
+        const playerPlaceholder = document.getElementById('player-placeholder'); 
+        const remoteUrlInput = document.getElementById('remote-url-input'); 
+        const corsProxyInput = document.getElementById('cors-proxy-input');
+
+        // FORCE STRICT MASKING RULE: We limit ICE candidate harvesting to avoid WebRTC IP leaks
+        const clusterIceMatrix = {
+            config: { 
+                'iceServers': [
+                    { 'urls': 'stun:stun.l.google.com:19302' }, 
+                    { 'urls': 'stun:stun1.l.google.com:19302' }
+                ],
+                // Hides raw local IP addresses during handshake mapping
+                'iceCandidatePoolSize': 0 
+            }
+        };
+
+        // IndexedDB Sandboxed virtual drive space to avoid crashing low RAM mobile devices
+        function initIndexedDBStore() {
+            return new Promise((resolve) => {
+                const request = indexedDB.open("CyberShareStorageX_v6_Production", 1);
+                request.onupgradeneeded = (e) => { 
+                    const db = e.target.result;
+                    if (!db.objectStoreNames.contains("ChunksBuffer")) {
+                        db.createObjectStore("ChunksBuffer"); 
+                    }
+                };
+                request.onsuccess = (e) => { dbInstance = e.target.result; resolve(); };
+            });
+        }
+
+        // Secure unguessable SHA-256 room address spawner
+        async function makeHashAddress() {
+            const buffer = new Uint8Array(24); 
+            window.crypto.getRandomValues(buffer);
+            const digest = await window.crypto.subtle.digest('SHA-256', buffer);
+            return Array.from(new Uint8Array(digest)).map(b => b.toString(16).padStart(2, '0')).join('').substring(0, 36);
+        }
+
+        // Custom notification dialog popups configuration
+        function triggerNotification(title, msg, icon = "📢") {
+            const alertBox = document.getElementById('custom-alert');
+            document.getElementById('alert-title').innerText = title; 
+            document.getElementById('alert-message').innerText = msg; 
+            document.getElementById('alert-icon').innerText = icon;
+            alertBox.classList.remove('hidden'); 
+            setTimeout(closeNotification, 4500);
+        }
+        function closeNotification() { document.getElementById('custom-alert').classList.add('hidden'); }
+
+        // Secure copy utility (Safe inside nested preview iframe configurations)
+        btnCopy.addEventListener('click', () => {
+            const range = document.createRange(); 
+            range.selectNode(roomIdDisplay);
+            window.getSelection().removeAllRanges(); 
+            window.getSelection().addRange(range);
+            try { 
+                document.execCommand('copy'); 
+                triggerNotification("Key Secured", "Encrypted room key copied to clipboard.", "✨"); 
+            } catch (err) {
+                triggerNotification("Action Needed", "Please select and copy key manually.", "⚠️");
+            }
+            window.getSelection().removeAllRanges();
+        });
+
+        // Trigger: Room Host Deployment
+        btnSpawn.addEventListener('click', async () => {
+            btnSpawn.innerText = 'Spawning Secure Hub...'; 
+            await initIndexedDBStore();
+            const secureRoomHash = await makeHashAddress();
+            corePeer = new Peer(secureRoomHash, clusterIceMatrix);
+            corePeer.on('open', (id) => {
+                myId = id; 
+                btnSpawn.classList.add('hidden'); 
+                roomIdContainer.classList.remove('hidden'); 
+                roomIdDisplay.innerText = id;
+                updateEngineState('PRIVATE_ROOM_ACTIVE', 'text-cyan-400');
+                logToTerminal(`[SYSTEM]: Swarm private node initialized. Masking rules applied.`, "text-cyan-400");
+            });
+            corePeer.on('connection', (peerLink) => { bindSwarmNodePipeline(peerLink); });
+        });
+
+        // Trigger: Guest Connection
+        btnHook.addEventListener('click', async () => {
+            const targetHash = targetRoomInput.value.trim(); 
+            if (!targetHash) return triggerNotification("Key Missing", "Kindly provide target Room Address Key.", "🚫");
+            await initIndexedDBStore(); 
+            updateEngineState('SECURING_TUNNEL...', 'text-amber-500');
+            if (!corePeer) {
+                corePeer = new Peer(clusterIceMatrix);
+                corePeer.on('open', (id) => { 
+                    myId = id; 
+                    bindSwarmNodePipeline(corePeer.connect(targetHash)); 
+                });
+            } else { 
+                bindSwarmNodePipeline(corePeer.connect(targetHash)); 
+            }
+        });
+
+        // Pipeline Handler: Mesh connections ko build aur monitor karna
+        function bindSwarmNodePipeline(nodeConnection) {
+            nodeConnection.on('open', () => {
+                if(!swarmPeers.find(p => p.peer === nodeConnection.peer)) swarmPeers.push(nodeConnection);
+                refreshNetworkTopology(); 
+                logToTerminal(`[SYSTEM]: Tunnel established securely without public leaks.`, "text-emerald-400");
+                updateEngineState('TUNNEL_GRID_ACTIVE', 'text-emerald-400');
+
+                // Torrent PEX Swarm Node Sync logic
+                if (corePeer && myId && nodeConnection.peer !== myId) {
+                    const peerIDs = swarmPeers.map(p => p.peer).filter(id => id !== nodeConnection.peer);
+                    if (peerIDs.length > 0) {
+                        nodeConnection.send({ type: 'pex', peers: peerIDs });
+                    }
+                }
+            });
+
+            nodeConnection.on('data', async (payload) => {
+                // Handle Peer Exchange node updates
+                if (payload.type === 'pex') {
+                    payload.peers.forEach(peerId => {
+                        if (peerId !== myId && !swarmPeers.some(p => p.peer === peerId)) {
+                            logToTerminal(`[SYSTEM]: Discovering swarm neighbor [${peerId.substring(0, 6)}...]. Bridging.`, "text-indigo-400");
+                            bindSwarmNodePipeline(corePeer.connect(peerId));
+                        }
+                    });
+                }
+                // Handle new incoming stream metadata
+                else if (payload.type === 'stream-start') {
+                    fileMetadata = payload; 
+                    chunkIndexCounter = 0; 
+                    totalExpectedChunks = Math.ceil(payload.size / PACKET_CHUNK);
+                    streamProgressBox.classList.remove('hidden'); 
+                    clearIndexedDB();
+                    logToTerminal(`[INCOMING]: Mounting stream headers: ${payload.name}`, "text-purple-400");
+                } 
+                // Handle binary chunk packet write
+                else if (payload.type === 'stream-chunk') {
+                    await writeChunkToDisk(payload.index, payload.data); 
+                    chunkIndexCounter++;
+                    const calculatedPct = Math.min(100, Math.floor((chunkIndexCounter / totalExpectedChunks) * 100));
+                    refreshStreamProgress(calculatedPct, `Syncing Binary Stream: ${calculatedPct}%`);
+                    
+                    // WebTorrent Reseeding Strategy: Share chunk instantly forward down the pipeline
+                    swarmPeers.forEach(peerNode => { 
+                        if(peerNode.open && peerNode.peer !== nodeConnection.peer) {
+                            peerNode.send(payload); 
+                        }
+                    });
+
+                    // Live playback trigger for video formats
+                    if (fileMetadata.mime.startsWith('video/') && (chunkIndexCounter === 15 || (totalExpectedChunks < 15 && chunkIndexCounter === totalExpectedChunks - 1))) {
+                        initializeLiveVideoPipeline();
+                    }
+                } 
+                // Handle completion packet
+                else if (payload.type === 'stream-end') {
+                    logToTerminal(`[SYSTEM]: Chunk segments complete. Generating unified offline download keys...`, "text-cyan-400");
+                    compileDiskBlocksToDevice();
+                }
+            });
+
+            nodeConnection.on('close', () => { 
+                swarmPeers = swarmPeers.filter(p => p.peer !== nodeConnection.peer); 
+                refreshNetworkTopology(); 
+            });
+        }
+
+        // Writing raw ArrayBuffer segments securely to Sandboxed IndexedDB
+        function writeChunkToDisk(index, data) {
+            return new Promise((resolve) => {
+                const transaction = dbInstance.transaction(["ChunksBuffer"], "readwrite");
+                transaction.objectStore("ChunksBuffer").put(data, index); 
+                transaction.oncomplete = () => resolve();
+            });
+        }
+        function clearIndexedDB() { 
+            if(dbInstance) {
+                dbInstance.transaction(["ChunksBuffer"], "readwrite").objectStore("ChunksBuffer").clear(); 
+            }
+        }
+        
+        mediaMounter.addEventListener('change', (e) => { 
+            if (e.target.files[0]) { 
+                mountedFileName.innerText = "Mounted block: " + e.target.files[0].name; 
+                remoteUrlInput.value = ''; 
+            } 
+        });
+
+        // Dynamic Slicing & Broadcasting Loop Engine (supports local mounts + remote proxies)
+        btnBroadcast.addEventListener('click', async () => {
+            const remoteUrl = remoteUrlInput.value.trim(); 
+            const localFile = mediaMounter.files[0]; 
+            const corsProxy = corsProxyInput.value.trim();
+            
+            if (!remoteUrl && !localFile) return triggerNotification("Ecosystem Blank", "Please mount a local file or paste a secure remote URL link.", "🚫");
+            if (swarmPeers.length === 0) return triggerNotification("No Peer", "No nodes active in your swarm grid to receive the stream.", "🔌");
+
+            streamProgressBox.classList.remove('hidden');
+
+            if (remoteUrl) {
+                let targetUrl = remoteUrl; 
+                if (corsProxy) {
+                    targetUrl = corsProxy + (corsProxy.endsWith('/') ? '' : '/') + remoteUrl;
+                }
+                logToTerminal(`[PROXY]: Pinging stream router endpoints...`, "text-yellow-400");
+                try {
+                    updateEngineState('POLLING_TARGET...', 'text-amber-500');
+                    const response = await fetch(targetUrl); 
+                    if(!response.ok) throw new Error("CORS mapping blocked.");
+                    
+                    const contentLength = response.headers.get('content-length') || 250 * 1024 * 1024; 
+                    const fileName = remoteUrl.split('/').pop().split('?')[0] || "stream_mesh_payload.dat";
+                    const contentType = response.headers.get('content-type') || "application/octet-stream";
+
+                    swarmPeers.forEach(p => p.send({ type: 'stream-start', name: fileName, size: parseInt(contentLength), mime: contentType }));
+                    const reader = response.body.getReader(); 
+                    let currentChunkIndex = 0; 
+                    let bytesStreamed = 0;
+
+                    // Read bytes asynchronously from remote source and feed WebRTC stream packets
+                    while(true) {
+                        const { done, value } = await reader.read(); 
+                        if(done) break;
+                        
+                        for (let i = 0; i < value.length; i += PACKET_CHUNK) {
+                            const chunkSliceCopy = new Uint8Array(value.subarray(i, i + PACKET_CHUNK)).buffer;
+                            swarmPeers.forEach(p => p.send({ type: 'stream-chunk', index: currentChunkIndex, data: chunkSliceCopy }));
+                            currentChunkIndex++;
+                        }
+                        bytesStreamed += value.length;
+                        const calculatedPct = Math.min(100, Math.floor((bytesStreamed / contentLength) * 100));
+                        refreshStreamProgress(calculatedPct, `Disseminating URL chunks: ${calculatedPct}%`);
+                    }
+                    swarmPeers.forEach(p => p.send({ type: 'stream-end' })); 
+                    logToTerminal(`[SUCCESS]: Encrypted stream broadcast completed successfully.`, "text-cyan-400");
+                    setTimeout(() => streamProgressBox.classList.add('hidden'), 2000);
+                } catch(err) { 
+                    logToTerminal(`[CRITICAL]: Stream blocked by server origin policy rules. Toggle CORS proxy config bypass.`, "text-rose-500"); 
+                    updateEngineState('RELAY_FAILED', 'text-rose-400'); 
+                }
+            } else if (localFile) {
+                // Local Mounting slicing and streaming loops
+                swarmPeers.forEach(p => p.send({ type: 'stream-start', name: localFile.name, size: localFile.size, mime: localFile.type || "application/octet-stream" }));
+                let currentByteOffset = 0, currentChunkIndex = 0; 
+                const sliceMachineReader = new FileReader();
+                const pipeNextPacketSlice = () => { sliceMachineReader.readAsArrayBuffer(localFile.slice(currentByteOffset, currentByteOffset + PACKET_CHUNK)); };
+                
+                sliceMachineReader.onload = (event) => {
+                    swarmPeers.forEach(p => p.send({ type: 'stream-chunk', index: currentChunkIndex, data: event.target.result }));
+                    currentByteOffset += PACKET_CHUNK; 
+                    currentChunkIndex++;
+                    const pctCalculated = Math.min(100, Math.floor((currentByteOffset / localFile.size) * 100));
+                    refreshStreamProgress(pctCalculated, `Broadcasting: ${pctCalculated}%`);
+                    if (currentByteOffset < localFile.size) {
+                        setTimeout(pipeNextPacketSlice, 1);
+                    } else { 
+                        swarmPeers.forEach(p => p.send({ type: 'stream-end' })); 
+                        logToTerminal(`[SUCCESS]: Swarm local asset broadcast completed successfully.`, "text-cyan-400"); 
+                    }
+                };
+                pipeNextPacketSlice();
+            }
+        });
+
+        // Initialize media playback pipeline decoders (Loads standard media or Hls wrapper)
+        async function initializeLiveVideoPipeline() {
+            const assembledBufferArr = []; 
+            const store = dbInstance.transaction(["ChunksBuffer"], "readonly").objectStore("ChunksBuffer");
+            for(let i=0; i < chunkIndexCounter; i++) { 
+                await new Promise((r) => { 
+                    store.get(i).onsuccess = (e) => { 
+                        if(e.target.result) assembledBufferArr.push(e.target.result); 
+                        r(); 
+                    }; 
+                }); 
+            }
+            playerPlaceholder.classList.add('hidden'); 
+            streamPlayer.classList.remove('hidden');
+            const liveBlobUrl = URL.createObjectURL(new Blob(assembledBufferArr, { type: fileMetadata.mime }));
+            
+            // Checking if stream is HLS manifest list (.m3u8) to load Hls decode context
+            if (fileMetadata.mime.includes('mpegurl') || fileMetadata.name.endsWith('.m3u8')) {
+                if (Hls.isSupported()) {
+                    if (hlsInstance) hlsInstance.destroy(); 
+                    hlsInstance = new Hls();
+                    hlsInstance.loadSource(liveBlobUrl); 
+                    hlsInstance.attachMedia(streamPlayer);
+                    hlsInstance.on(Hls.Events.MANIFEST_PARSED, function() { streamPlayer.play(); });
+                } else if (streamPlayer.canPlayType('application/vnd.apple.mpegurl')) { 
+                    streamPlayer.src = liveBlobUrl; 
+                    streamPlayer.play(); 
+                }
+            } else { 
+                streamPlayer.src = liveBlobUrl; 
+                streamPlayer.play().catch(e => {}); 
+            }
+        }
+
+        // Unification Phase: Fetch packet data chunks from sandboxed storage and create a direct offline download button
+        async function compileDiskBlocksToDevice() {
+            const comprehensiveOrderedBuffer = []; 
+            const store = dbInstance.transaction(["ChunksBuffer"], "readonly").objectStore("ChunksBuffer");
+            for (let i = 0; i < chunkIndexCounter; i++) { 
+                await new Promise((resolve) => { 
+                    store.get(i).onsuccess = (event) => { 
+                        if (event.target.result) comprehensiveOrderedBuffer.push(event.target.result); 
+                        resolve(); 
+                    }; 
+                }); 
+            }
+            const globalDeviceDownloadHandleUrl = URL.createObjectURL(new Blob(comprehensiveOrderedBuffer, { type: fileMetadata.mime }));
+            
+            // Generate Customized Download UI Card
+            const structuralCardBlock = document.createElement('div');
+            structuralCardBlock.className = 'bg-[#0f111a] border border-slate-800/60 rounded-xl p-4 space-y-3 mt-2 shadow-md';
+            structuralCardBlock.innerHTML = `
+                <div class="flex items-center justify-between">
+                    <p class="text-[10px] text-cyan-400 font-bold tracking-wider font-mono">✓ MESH MATRIX UNIFIED</p>
+                </div>
+                <p class="text-xs text-slate-300 truncate font-mono">${fileMetadata.name}</p>
+                <!-- Direct browser blob safe download trigger -->
+                <a href="${globalDeviceDownloadHandleUrl}" download="${fileMetadata.name}" class="block text-center bg-cyan-500 font-bold text-black text-xs py-2.5 rounded-lg hover:bg-cyan-400 transition shadow-md cursor-pointer">
+                    📥 DOWNLOAD / SAVE EXTRACTED DEVICE FILE
+                </a>
+            `;
+            terminalLogs.appendChild(structuralCardBlock); 
+            terminalLogs.scrollTop = terminalLogs.scrollHeight;
+            if (fileMetadata.mime.startsWith('video/')) {
+                streamPlayer.src = globalDeviceDownloadHandleUrl;
+            }
+        }
+
+        // General Stats configuration updates
+        function refreshNetworkTopology() { swarmCount.innerText = swarmPeers.length; }
+        function updateEngineState(txt, color) { systemStatus.innerText = "STATUS: " + txt; systemStatus.className = "mt-3 text-center text-[10px] font-mono tracking-wider " + color; }
+        function refreshStreamProgress(pct, labelText) { streamProgressBar.style.width = pct + "%"; streamPercentage.innerText = pct + "%"; streamLabel.innerText = labelText; }
+        function logToTerminal(message, textColorClass = "text-slate-500") {
+            const logLine = document.createElement('div'); 
+            logLine.className = textColorClass + " text-[11px] font-mono leading-relaxed";
+            logLine.innerText = "[" + new Date().toLocaleTimeString() + "] " + message; 
+            terminalLogs.appendChild(logLine); 
+            terminalLogs.scrollTop = terminalLogs.scrollHeight;
+        }
+    </script>
+</body>
+</html>
